@@ -1,0 +1,51 @@
+#include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
+
+#define UTIL_IMPLEMENTATION
+#include "utils.h"
+
+#define BUF_SIZE 128
+
+int main(int argc, char *argv[])
+{
+	/* ucitavanje podesavanja */
+	char scancodeFile[BUF_SIZE];
+	char mnemonicsFile[BUF_SIZE]="ctrl.map";
+	printstr("Unesite ime datoteke koja sadrzi scancode vrednosti:\n");
+	read(0,scancodeFile,BUF_SIZE);
+	if(scancodeFile[strlen(scancodeFile)-1]=='\n')
+		scancodeFile[strlen(scancodeFile)-1]='\0';
+	printstr(scancodeFile);
+	printstr(mnemonicsFile);
+	write(1,"\n",strlen("\n"));
+	load_config(scancodeFile,mnemonicsFile);
+	/* ponavljamo: */
+		/* ucitavanje i otvaranje test fajla */
+		/* parsiranje fajla, obrada scanecodova, ispis */
+	char testFile[BUF_SIZE];
+	printstr("Unesite ime test datoteke:\n");
+	read(0,testFile,BUF_SIZE);
+	if(testFile[strlen(testFile)-1]=='\n')
+		testFile[strlen(testFile)-1]='\0';	
+	printstr(testFile);
+	int fd=open(testFile, O_RDONLY);
+	if(fd==-1)
+	{
+		printerr("Fajl sa mnemonicima neuspesno otvoren!\n");
+		_exit(1);
+	}
+	char buffer[BUF_SIZE];
+	fgets(buffer,BUF_SIZE,fd);
+	int num=atoi(buffer);
+	while(num!=400)
+	{
+		//printstr(buffer);
+		fgets(buffer,BUF_SIZE,fd);
+		num=atoi(buffer);
+		char text[BUF_SIZE];
+		int len=process_scancode(num, text);
+	}
+		
+	_exit(0);
+}

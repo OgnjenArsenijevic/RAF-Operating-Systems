@@ -1,0 +1,196 @@
+#include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
+
+#include "utils.h"
+
+#define BUF_SIZE 128
+#define TEST_SIZE 2
+/*
+	Deklaracije za nizove i tabele ovde
+	tabelu za prevodjenje scancodeova i tabelu
+	za cuvanje mnemonika cuvati kao staticke
+	varijable unutar ovog fajla i ucitavati
+	ih uz pomoc funkcije load_config
+
+*/
+
+static int ctrl=0;
+static int alt=0;
+static int shift=0;
+static char scancode[129];
+static int scancodeSz;
+static char scancodeShift[129];
+static int scancodeIdxInMnemonics[129];
+static int scancodeShiftIdxInMnemonics[129];
+static char mnemonics[16][65];
+
+void load_config(const char *scancodes_filename, const char *mnemonic_filename)
+{
+	int fd=open(scancodes_filename, O_RDONLY);
+	char buffer[BUF_SIZE];
+	char bu[BUF_SIZE];
+	if(fd==-1)
+	{
+		printerr("Fajl sa scan-kodovima neuspesno otvoren!\n");
+		_exit(1);
+	}
+	fgets(buffer,BUF_SIZE,fd);
+	scancodeSz=strlen(buffer);
+	scancodeSz--; //smanjujemo za 1 da ne bi smo racunali karakter za novi red
+	printstr(buffer);
+	int i;	
+	for(i=0;i<scancodeSz;i++)
+		scancode[i]=buffer[i];
+	fgets(buffer,BUF_SIZE,fd);
+	for(i=0;i<scancodeSz;i++)
+		scancodeShift[i]=buffer[i];
+	/*for(i=0;i<scancodeSz;i++)
+	{
+		char test[TEST_SIZE];
+		test[0]=scancode[i];
+		test[1]='\0';
+		write(1,test,strlen(test));
+	}
+	write(1,"\n",strlen("\n"));
+	for(i=0;i<scancodeSz;i++)
+	{
+		char test[TEST_SIZE];
+		test[0]=scancodeShift[i];
+		test[1]='\0';
+		write(1,test,strlen(test));
+	}
+	write(1,"\n",strlen("\n"));*/
+	fd=open(mnemonic_filename, O_RDONLY);
+	if(fd==-1)
+	{
+		printerr("Fajl sa mnemonicima neuspesno otvoren!\n");
+		_exit(1);
+	}
+	fgets(buffer,BUF_SIZE,fd);
+	int numOfMnemonics=atoi(buffer);
+	memset(scancodeIdxInMnemonics,-1,sizeof(scancodeIdxInMnemonics));
+	memset(scancodeShiftIdxInMnemonics,-1,sizeof(scancodeShiftIdxInMnemonics));	
+	int row;	
+	for(row=0;row<numOfMnemonics;row++)
+	{
+		fgets(buffer,BUF_SIZE,fd);
+		char toSearch=buffer[0]; //karakter koji trazimo da li postoji medju scancodovima, ili siftovanim scancodovima
+		int idx=0;		
+		for(i=2;i<strlen(buffer);i++)
+			mnemonics[row][idx++]=buffer[i];
+		if(mnemonics[row][idx-1]=='\n')
+			idx--;
+		mnemonics[row][idx]='\0';
+		//printstr(mnemonics[row]);
+		//printstr("\n");
+		char found='F';
+		for(i=0;i<scancodeSz;i++)
+		{
+			if(scancode[i]==toSearch)
+			{
+				scancodeIdxInMnemonics[i]=row;
+				found='T';
+				break;
+			}
+		}
+		if(found=='F')
+		{
+			for(i=0;i<scancodeSz;i++)
+			{
+				if(scancodeShift[i]==toSearch)
+				{
+					scancodeShiftIdxInMnemonics[i]=row;
+					break;
+				}
+			}
+		}
+	}
+	/*for(i=0;i<numOfMnemonics;i++)
+	{
+		printstr(mnemonics[i]);
+		printstr("\n");
+	}*/
+	/*for(i=0;i<scancodeSz;i++)
+	{
+		itoa(scancodeIdxInMnemonics[i],bu);
+		printstr(bu);
+		printstr(" ");
+	}
+	printstr("\n");
+	for(i=0;i<scancodeSz;i++)
+	{
+		itoa(scancodeShiftIdxInMnemonics[i],bu);
+		printstr(bu);
+		printstr(" ");
+	}*/
+}
+
+int process_scancode(int scancode, char *buffer)
+{
+	int result=0;
+	/*
+		Your code goes here!
+		Remember, only inline assembly.
+		Good luck!
+	*/
+	__asm__ __volatile__ 
+	(
+		"cmpl $200, %%eax;"
+		"je CON1;"
+		"cmpl $300, %%eax;"
+		"jne CON2;"
+		"CON1:;"
+		"xorl $1, %%edx;"
+		"CON2:;"
+		: "=d" (shift)
+		: "a" (scancode), "d" (shift)
+		:		
+	);
+
+	__asm__ __volatile__ 
+	(
+		"cmpl $201, %%eax;"
+		"je CON3;"
+		"cmpl $301, %%eax;"
+		"jne CON4;"
+		"CON3:;"
+		"xorl $1, %%edx;"
+		"CON4:;"
+		: "=d" (ctrl)
+		: "a" (scancode), "d" (ctrl)
+		:		
+	);	
+	
+	__asm__ __volatile__ 
+	(
+		"cmpl $202, %%eax;"
+		"je CON5;"
+		"cmpl $302, %%eax;"
+		"jne CON6;"
+		"CON5:;"
+		"xorl $1, %%edx;"
+		"CON6:;"
+		: "=d" (alt)
+		: "a" (scancode), "d" (alt)
+		:		
+	);	
+
+	char bu[BUF_SIZE];
+	itoa(scancode,bu);	
+	printstr(bu);
+	printstr(",");
+	
+	itoa(shift,bu);	
+	printstr(bu);
+	printstr(",");
+
+	itoa(ctrl,bu);	
+	printstr(bu);
+	printstr(",");
+
+	itoa(alt,bu);	
+	printstr(bu);
+	printstr("  ");
+	return result;
+}
