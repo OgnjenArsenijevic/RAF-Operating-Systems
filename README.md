@@ -1,3 +1,3 @@
-# RAF-Operativni-Sistemi
+# RAF-Operating-Systems
 
-Uradjeni domaci i projekti iz predmeta operativni sistemi.
+Solved homework and projects.
